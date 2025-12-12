@@ -55,7 +55,6 @@ export const analyzePrompt = async (prompt: string): Promise<AnalysisResult> => 
 
 export const runSimulation = async (prompt: string): Promise<SimulationResult> => {
   try {
-    // We use a general model for simulation, with grounding enabled for better accuracy
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -87,6 +86,11 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
       contents: {
         parts: [{ text: prompt }],
       },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+        }
+      }
     });
 
     let imageData = "";
@@ -104,7 +108,7 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
         if (text) {
              return { output: text, source: 'image' };
         }
-        throw new Error("No image data returned");
+        throw new Error("No image data returned from API");
     }
 
     return {
@@ -114,7 +118,12 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
     };
   } catch (error) {
     console.error("Image Generation Error:", error);
-    return { output: "Failed to generate image. Please try a different prompt or check your API key permissions.", source: 'image' };
+    // Provide specific error message to the user
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { 
+        output: `Failed to generate image. Details: ${errorMessage}. Check API key permissions for 'gemini-2.5-flash-image'.`, 
+        source: 'image' 
+    };
   }
 };
 
