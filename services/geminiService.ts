@@ -1,8 +1,6 @@
 import { GoogleGenAI, Schema, Type } from "@google/genai";
 import { AnalysisResult, SimulationResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Robust JSON cleaner to handle potential Markdown wrapping from the model
 const cleanJson = (text: string): string => {
   let clean = text.trim();
@@ -29,6 +27,7 @@ const analysisSchema: Schema = {
 };
 
 export const analyzePrompt = async (prompt: string): Promise<AnalysisResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -54,6 +53,7 @@ export const analyzePrompt = async (prompt: string): Promise<AnalysisResult> => 
 };
 
 export const runSimulation = async (prompt: string): Promise<SimulationResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -80,6 +80,7 @@ export const runSimulation = async (prompt: string): Promise<SimulationResult> =
 };
 
 export const runImageGeneration = async (prompt: string): Promise<SimulationResult> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
@@ -121,13 +122,14 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
     // Provide specific error message to the user
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return { 
-        output: `Failed to generate image. Details: ${errorMessage}. Check that your API key is valid and supports the 'gemini-2.5-flash-image' model.`, 
+        output: `Failed to generate image. Details: ${errorMessage}. Please check that your API key is valid and has access to 'gemini-2.5-flash-image'.`, 
         source: 'image' 
     };
   }
 };
 
 export const transcribeAudio = async (audioBase64: string, mimeType: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
