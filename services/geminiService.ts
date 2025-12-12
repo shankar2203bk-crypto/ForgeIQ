@@ -129,7 +129,7 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
 };
 
 export const transcribeAudio = async (audioBase64: string, mimeType: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey:AIzaSyBt3ZX46XGRwGlQqAJvgivuaP6YOjzOvmw  });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
