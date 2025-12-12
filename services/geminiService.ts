@@ -121,7 +121,7 @@ export const runImageGeneration = async (prompt: string): Promise<SimulationResu
     // Provide specific error message to the user
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return { 
-        output: `Failed to generate image. Details: ${errorMessage}. Check API key permissions for 'gemini-2.5-flash-image'.`, 
+        output: `Failed to generate image. Details: ${errorMessage}. Check that your API key is valid and supports the 'gemini-2.5-flash-image' model.`, 
         source: 'image' 
     };
   }
