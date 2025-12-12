@@ -7,6 +7,6 @@ export default defineConfig({
     outDir: 'dist',
   },
   define: {
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
-  }
+    'process.env.API_KEY': JSON.stringify("AIzaSyBt3ZX46XGRwGlQqAJvgivuaP6YOjzOvmw"),
+  },
 });
