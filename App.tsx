@@ -6,6 +6,7 @@ import SimulationView from './components/SimulationView';
 import Logo from './components/Logo';
 import Toast, { ToastType } from './components/Toast';
 import LoginPage from './components/LoginPage';
+import ExamplePrompts from './components/ExamplePrompts';
 import { Sparkles, Activity, PlayCircle, Trash2, LogOut, Mic, Square, Loader2, Car } from 'lucide-react';
 
 function App() {
@@ -48,6 +49,11 @@ function App() {
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const handleSelectExample = (examplePrompt: string) => {
+    setPrompt(examplePrompt);
+    showToast("Example prompt loaded!", "info");
   };
 
   // Recording Handlers
@@ -193,6 +199,7 @@ function App() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
             />
+            <ExamplePrompts onSelect={handleSelectExample} />
           </div>
           
           <button
