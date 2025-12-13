@@ -14,3 +14,10 @@ export interface SimulationResult {
   groundingUrls?: Array<{ title: string; uri: string }>;
   imageData?: string;
 }
+
+export interface HistoryItem {
+  id: string;
+  prompt: string;
+  analysis: AnalysisResult;
+  timestamp: number;
+}

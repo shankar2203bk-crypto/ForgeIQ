@@ -7,6 +7,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   define: {
-    'process.env.API_KEY': JSON.stringify("AIzaSyBt3ZX46XGRwGlQqAJvgivuaP6YOjzOvmw"),
+    // Prioritize environment variable if set, otherwise use the provided key for immediate usage.
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "AIzaSyBt3ZX46XGRwGlQqAJvgivuaP6YOjzOvmw"),
   },
 });
