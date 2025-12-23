@@ -3,11 +3,12 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    port: 3000,
+    open: true,
+  },
   build: {
     outDir: 'dist',
-  },
-  define: {
-    // Prioritize environment variable if set, otherwise use the provided key for immediate usage.
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "AIzaSyBt3ZX46XGRwGlQqAJvgivuaP6YOjzOvmw"),
+    sourcemap: true,
   },
 });

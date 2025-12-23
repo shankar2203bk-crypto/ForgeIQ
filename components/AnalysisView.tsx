@@ -1,89 +1,130 @@
-import React from 'react';
-import { AnalysisResult } from '../types';
-import { Check, X, ArrowRight, Copy, Wand2 } from 'lucide-react';
+import { Copy, CheckCircle, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import type { PromptAnalysis } from '../types';
 
 interface AnalysisViewProps {
-  result: AnalysisResult;
-  onApplyImproved: (text: string) => void;
+  analysis: PromptAnalysis;
+  onCopy: (text: string) => void;
+  onUseImproved: (text: string) => void;
 }
 
-const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onApplyImproved }) => {
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-green-500 border-green-500';
-    if (score >= 5) return 'text-yellow-500 border-yellow-500';
-    return 'text-red-500 border-red-500';
+export default function AnalysisView({ analysis, onCopy, onUseImproved }: AnalysisViewProps) {
+  const [copiedImproved, setCopiedImproved] = useState(false);
+
+  const handleCopyImproved = () => {
+    onCopy(analysis.improvedPrompt);
+    setCopiedImproved(true);
+    setTimeout(() => setCopiedImproved(false), 2000);
   };
 
+  const getDifficultyColor = (level: string) => {
+    switch (level) {
+      case 'Beginner':
+        return 'bg-green-900/50 text-green-400 border-green-700';
+      case 'Intermediate':
+        return 'bg-yellow-900/50 text-yellow-400 border-yellow-700';
+      case 'Advanced':
+        return 'bg-red-900/50 text-red-400 border-red-700';
+      default:
+        return 'bg-slate-700 text-slate-300 border-slate-600';
+    }
+  };
+
+  const scorePercentage = (analysis.qualityScore / 10) * 100;
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Score Header */}
-      <div className="flex items-center justify-between bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-        <div>
-          <h2 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Prompt Score</h2>
-          <div className="text-3xl font-bold text-white">{result.level}</div>
+    <div className="space-y-6 fade-in">
+      <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Quality Score</h3>
+          <span className="text-2xl font-bold text-orange-500">{analysis.qualityScore}/10</span>
         </div>
-        <div className={`relative w-24 h-24 flex items-center justify-center rounded-full border-4 ${getScoreColor(result.score)}`}>
-          <span className="text-4xl font-bold">{result.score}</span>
-          <span className="absolute bottom-4 text-xs font-medium opacity-70">/10</span>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="bg-slate-800/30 p-5 rounded-xl border border-slate-700/50">
-        <p className="text-slate-300 leading-relaxed">{result.summary}</p>
-      </div>
-
-      {/* Strengths & Weaknesses */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-green-900/10 border border-green-500/20 p-5 rounded-xl">
-          <h3 className="flex items-center gap-2 text-green-400 font-semibold mb-3">
-            <Check className="w-4 h-4" /> Strengths
-          </h3>
-          <ul className="space-y-2">
-            {result.strengths.map((s, i) => (
-              <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                <span className="block w-1 h-1 rounded-full bg-green-500 mt-2 flex-shrink-0" />
-                {s}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-red-900/10 border border-red-500/20 p-5 rounded-xl">
-          <h3 className="flex items-center gap-2 text-red-400 font-semibold mb-3">
-            <X className="w-4 h-4" /> Weaknesses
-          </h3>
-          <ul className="space-y-2">
-            {result.weaknesses.map((w, i) => (
-              <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                <span className="block w-1 h-1 rounded-full bg-red-500 mt-2 flex-shrink-0" />
-                {w}
-              </li>
-            ))}
-          </ul>
+        <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-orange-600 to-orange-500 h-full transition-all duration-500"
+            style={{ width: `${scorePercentage}%` }}
+          />
         </div>
       </div>
 
-      {/* Improved Prompt */}
-      <div className="bg-slate-900 border border-primary-500/30 rounded-xl overflow-hidden shadow-lg shadow-black/20">
-        <div className="bg-slate-800/80 px-4 py-3 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-primary-400 font-semibold flex items-center gap-2">
-            <Wand2 className="w-4 h-4" /> Recommended Version
-          </h3>
-          <button 
-            onClick={() => onApplyImproved(result.improvedPrompt)}
-            className="text-xs bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
-          >
-            Apply to Editor <ArrowRight className="w-3 h-3" />
-          </button>
+      <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
+        <h3 className="text-lg font-semibold text-white mb-3">Difficulty Level</h3>
+        <span className={`inline-block px-4 py-2 rounded-lg border ${getDifficultyColor(analysis.difficultyLevel)} font-medium`}>
+          {analysis.difficultyLevel}
+        </span>
+      </div>
+
+      <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
+        <h3 className="text-lg font-semibold text-white mb-3">Strengths</h3>
+        <ul className="space-y-2">
+          {analysis.strengths.map((strength, index) => (
+            <li key={index} className="flex items-start gap-2 text-slate-300">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span>{strength}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
+        <h3 className="text-lg font-semibold text-white mb-3">Weaknesses</h3>
+        <ul className="space-y-2">
+          {analysis.weaknesses.map((weakness, index) => (
+            <li key={index} className="flex items-start gap-2 text-slate-300">
+              <div className="w-5 h-5 rounded-full bg-red-900/30 border-2 border-red-600 flex-shrink-0 mt-0.5" />
+              <span>{weakness}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="bg-slate-800 rounded-lg p-6 shadow-lg">
+        <h3 className="text-lg font-semibold text-white mb-3">Improvement Suggestions</h3>
+        <ol className="space-y-3">
+          {analysis.suggestions.map((suggestion, index) => (
+            <li key={index} className="flex items-start gap-3 text-slate-300">
+              <span className="flex items-center justify-center w-6 h-6 bg-orange-600 text-white rounded-full text-sm font-bold flex-shrink-0">
+                {index + 1}
+              </span>
+              <span>{suggestion}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg p-6 shadow-lg border border-orange-600/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white">Improved Prompt</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyImproved}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-all"
+            >
+              {copiedImproved ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => onUseImproved(analysis.improvedPrompt)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-all"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>Use This</span>
+            </button>
+          </div>
         </div>
-        <div className="p-4 bg-black/20">
-          <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200 leading-relaxed">
-            {result.improvedPrompt}
-          </pre>
-        </div>
+        <p className="text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+          {analysis.improvedPrompt}
+        </p>
       </div>
     </div>
   );
-};
-
-export default AnalysisView;
+}

@@ -1,153 +1,111 @@
-import { GoogleGenAI, Schema, Type } from "@google/genai";
-import { AnalysisResult, SimulationResult } from "../types";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { PromptAnalysis } from '../types';
 
-// Robust JSON cleaner to handle potential Markdown wrapping from the model
-const cleanJson = (text: string): string => {
-  let clean = text.trim();
-  if (clean.startsWith('```json')) {
-    clean = clean.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-  } else if (clean.startsWith('```')) {
-    clean = clean.replace(/^```\s*/, '').replace(/\s*```$/, '');
+let genAI: GoogleGenerativeAI | null = null;
+
+export function initializeGemini(apiKey: string) {
+  genAI = new GoogleGenerativeAI(apiKey);
+}
+
+export function isInitialized(): boolean {
+  return genAI !== null;
+}
+
+export async function analyzePrompt(prompt: string): Promise<PromptAnalysis> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized. Please provide an API key.');
   }
-  return clean;
-};
 
-const analysisSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    score: { type: Type.INTEGER },
-    level: { type: Type.STRING, enum: ["Beginner", "Intermediate", "Advanced"] },
-    summary: { type: Type.STRING },
-    strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-    weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
-    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
-    improvedPrompt: { type: Type.STRING },
-  },
-  required: ["score", "level", "summary", "strengths", "weaknesses", "suggestions", "improvedPrompt"],
-};
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-export const analyzePrompt = async (prompt: string): Promise<AnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `You are an expert Prompt Engineer. Analyze the following LLM prompt.
-      
-      Prompt: "${prompt}"
-      
-      Provide a score (0-10), difficulty level, critique, and a concrete improved version.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: analysisSchema,
-      },
-    });
+  const analysisPrompt = `You are an expert AI prompt engineer. Analyze the following prompt and provide detailed feedback in JSON format.
 
-    const text = response.text;
-    if (!text) throw new Error("No response from model");
+Original Prompt:
+"${prompt}"
 
-    return JSON.parse(cleanJson(text)) as AnalysisResult;
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    throw new Error("Failed to analyze prompt. Please try again.");
+Provide a comprehensive analysis in this exact JSON structure:
+{
+  "qualityScore": <number 0-10>,
+  "difficultyLevel": "<Beginner|Intermediate|Advanced>",
+  "strengths": ["strength 1", "strength 2", ...],
+  "weaknesses": ["weakness 1", "weakness 2", ...],
+  "suggestions": ["suggestion 1", "suggestion 2", ...],
+  "improvedPrompt": "<complete rewritten improved version>"
+}
+
+Guidelines:
+- qualityScore: Rate 0-10 where 10 is excellent
+- difficultyLevel: Choose from Beginner, Intermediate, or Advanced
+- strengths: List 2-4 specific things the prompt does well
+- weaknesses: List 2-4 specific areas that need improvement
+- suggestions: Provide 3-5 actionable improvement steps
+- improvedPrompt: Write a complete, optimized version of the prompt
+
+Focus on clarity, specificity, context, and effectiveness for AI models. Return ONLY valid JSON, no other text.`;
+
+  const result = await model.generateContent(analysisPrompt);
+  const response = result.response;
+  const text = response.text();
+  
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse analysis response');
   }
-};
+  
+  const analysis: PromptAnalysis = JSON.parse(jsonMatch[0]);
+  return analysis;
+}
 
-export const runSimulation = async (prompt: string): Promise<SimulationResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
-    });
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized. Please provide an API key.');
+  }
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const urls = groundingChunks
-      .map(c => c.web)
-      .filter((w): w is { title: string; uri: string } => !!w);
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-    return {
-      output: response.text || "No output generated.",
-      source: 'text',
-      groundingUrls: urls
+  const reader = new FileReader();
+  const base64Audio = await new Promise<string>((resolve, reject) => {
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1]);
     };
-  } catch (error) {
-    console.error("Simulation Error:", error);
-    return { output: "Error running simulation.", source: 'text' };
-  }
-};
+    reader.onerror = reject;
+    reader.readAsDataURL(audioBlob);
+  });
 
-export const runImageGeneration = async (prompt: string): Promise<SimulationResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: {
-        parts: [{ text: prompt }],
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: audioBlob.type,
+        data: base64Audio,
       },
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-        }
-      }
-    });
+    },
+    'Transcribe this audio recording accurately. Return only the transcribed text without any additional commentary.',
+  ]);
 
-    let imageData = "";
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    
-    for (const part of parts) {
-      if (part.inlineData && part.inlineData.data) {
-        imageData = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+  return result.response.text();
+}
+
+export async function generateImage(prompt: string): Promise<string> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized. Please provide an API key.');
+  }
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+
+  const imagePrompt = `Generate a detailed, high-quality image based on this prompt: ${prompt}`;
+
+  const result = await model.generateContent(imagePrompt);
+  const response = result.response;
+  
+  if (response.candidates && response.candidates[0]?.content?.parts) {
+    for (const part of response.candidates[0].content.parts) {
+      if ('inlineData' in part && part.inlineData) {
+        const { mimeType, data } = part.inlineData;
+        return `data:${mimeType};base64,${data}`;
       }
     }
-
-    if (!imageData) {
-        // Occasionally the model might refuse or just return text if it fails to generate an image
-        const text = response.text;
-        if (text) {
-             return { output: text, source: 'image' };
-        }
-        throw new Error("No image data returned from API");
-    }
-
-    return {
-      output: "Image generated successfully",
-      source: 'image',
-      imageData: imageData
-    };
-  } catch (error) {
-    console.error("Image Generation Error:", error);
-    // Provide specific error message to the user
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return { 
-        output: `Failed to generate image. Details: ${errorMessage}. Please check that your API key is valid and has access to 'gemini-2.5-flash-image'.`, 
-        source: 'image' 
-    };
   }
-};
 
-export const transcribeAudio = async (audioBase64: string, mimeType: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: audioBase64
-            }
-          },
-          { text: "Please transcribe the following audio. Return only the transcribed text, no additional commentary or description." }
-        ]
-      }
-    });
-    return response.text || "";
-  } catch (error) {
-    console.error("Transcription Error:", error);
-    throw new Error("Failed to transcribe audio.");
-  }
-};
+  throw new Error('Image generation is not supported by this model. Please note that Gemini API does not currently support image generation. This feature is for demonstration purposes.');
+}
