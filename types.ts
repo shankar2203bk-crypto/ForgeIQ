@@ -1,23 +1,27 @@
-export interface AnalysisResult {
-  score: number;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
-  summary: string;
+export interface PromptAnalysis {
+  qualityScore: number;
+  difficultyLevel: 'Beginner' | 'Intermediate' | 'Advanced';
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
   improvedPrompt: string;
 }
 
-export interface SimulationResult {
-  output: string;
-  source?: 'text' | 'image';
-  groundingUrls?: Array<{ title: string; uri: string }>;
-  imageData?: string;
-}
-
 export interface HistoryItem {
   id: string;
+  timestamp: number;
+  originalPrompt: string;
+  analysis: PromptAnalysis;
+}
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+export interface GeneratedImage {
+  url: string;
   prompt: string;
-  analysis: AnalysisResult;
   timestamp: number;
 }
